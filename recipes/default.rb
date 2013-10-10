@@ -9,6 +9,9 @@ if platform_family?("debian")
 	
 	pathDashboard	= node[:openstack][:dashboard][:dash_path]
 	javascriptPath	= node[:openstack][:dashboard][:javascript]
+	compressJavascript	= node[:openstack][:manage]
+	localSetting =	node[:openstack][:dashboard][:localSetting]
+
 
 	# Volume template files
 	cookbook_file "_create.html" do
@@ -50,6 +53,30 @@ if platform_family?("debian")
 	 #path	 '/usr/share/openstack-dashboard/openstack_dashboard/dashboards/project/volumes/forms.py'
 	 action   :create
 	end
+
+
+
+
+  	query = 'COMPRESS_OFFLINE'
+	names = File.readlines("#{localSetting}/local_settings.py")
+	matches = names.select { |name| name[/#{query}/i] }
+
+
+	log "Horizon JavaScript compression: #{matches[0]}" do
+	  level :debug
+	end
+
+
+	if matches[0].downcase.include? "true"
+		# rebuild compressed js Horizon files.
+		bash "manage" do
+			code "#{compressJavascript}/manage.py compress"
+			user "root"
+			#code "source #{compressJavascript}/manage.py compress"
+		end
+	end
+
+
 end
 
 # Restart apache service
