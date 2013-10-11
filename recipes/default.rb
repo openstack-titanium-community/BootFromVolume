@@ -5,12 +5,19 @@
 # Do not continue if trying to run on platform other than debian
 #
 
+include_recipe 'openstack-dashboard::server'
+
+package 'openstack-dashboard'
+
+
+
 if platform_family?("debian")
 	
 	pathDashboard	= node[:openstack][:dashboard][:dash_path]
 	javascriptPath	= node[:openstack][:dashboard][:javascript]
 	compressJavascript	= node[:openstack][:manage]
-	localSetting =	node[:openstack][:dashboard][:localSetting]
+
+
 
 
 	# Volume template files
@@ -42,7 +49,7 @@ if platform_family?("debian")
 
 	# API files
 	cookbook_file 'cinder.py' do
-	  path	 "#{node[:openstack][:dashboard][:dash_path]}/api/cinder.py"
+	  path	 "#{pathDashboard}/api/cinder.py"
 	  #path	 '/usr/share/openstack-dashboard/openstack_dashboard/api/cinder.py'
 	  action   :create
 	end
@@ -57,22 +64,15 @@ if platform_family?("debian")
 
 
 
-  	query = 'COMPRESS_OFFLINE'
-	names = File.readlines("#{localSetting}/local_settings.py")
-	matches = names.select { |name| name[/#{query}/i] }
-
-
-	log "Horizon JavaScript compression: #{matches[0]}" do
-	  level :debug
-	end
-
-
-	if matches[0].downcase.include? "true"
+	if node[:openstack][:dashboard][:localSetting][:compress_offline]
+		
+		log "Horizon JavaScript files to compress"
+		
 		# rebuild compressed js Horizon files.
 		bash "manage" do
 			code "#{compressJavascript}/manage.py compress"
+			#code "#{compressJavascript}/manage.py compress --force"
 			user "root"
-			#code "source #{compressJavascript}/manage.py compress"
 		end
 	end
 
